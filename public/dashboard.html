@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CollabNotes — Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="rooms-header">
+      <h2>📋 My Rooms</h2>
+      <button id="logoutBtn" onclick="logout()">Logout</button>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <!-- CREATE ROOM -->
+    <input type="text" id="roomName" placeholder="New room name..." />
+    <button onclick="createRoom()">＋ Create Room</button>
+
+    <!-- JOIN ROOM -->
+    <input type="text" id="roomCode" placeholder="Enter room code to join..." />
+    <button class="secondary" onclick="joinRoom()">🔗 Join Room</button>
+
+    <hr style="border-color:#334155; margin: 1.5rem 0;" />
+
+    <div id="roomsList">
+      <p style="color:#94a3b8;">Loading rooms...</p>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'index.html';
+
+    function showMessage(text, type) {
+      const el = document.getElementById('message');
+      el.textContent = text;
+      el.className = `message ${type}`;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 3000);
+    }
+
+    async function loadRooms() {
+      const res = await fetch('/api/notes/rooms', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const rooms = await res.json();
+      const list = document.getElementById('roomsList');
+
+      if (rooms.length === 0) {
+        list.innerHTML = '<p style="color:#94a3b8;">No rooms yet. Create or join one!</p>';
+        return;
+      }
+
+      list.innerHTML = rooms.map(room => `
+        <div class="room-card" onclick="openRoom(${room.id}, '${room.name}')">
+          <div>
+            <div>${room.name}</div>
+            <div class="room-code">${room.code}</div>
+          </div>
+          <span>→</span>
+        </div>
+      `).join('');
+    }
+
+    async function createRoom() {
+      const name = document.getElementById('roomName').value.trim();
+      if (!name) return showMessage('Enter a room name.', 'error');
+
+      const res = await fetch('/api/notes/rooms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        document.getElementById('roomName').value = '';
+        showMessage(`Room created! Code: ${data.room.code}`, 'success');
+        loadRooms();
+      } else {
+        showMessage(data.message, 'error');
+      }
+    }
+
+    async function joinRoom() {
+      const code = document.getElementById('roomCode').value.trim().toUpperCase();
+      if (!code) return showMessage('Enter a room code.', 'error');
+
+      const res = await fetch('/api/notes/rooms/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ code })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        document.getElementById('roomCode').value = '';
+        showMessage('Joined room!', 'success');
+        loadRooms();
+      } else {
+        showMessage(data.message, 'error');
+      }
+    }
+
+    function openRoom(id, name) {
+      localStorage.setItem('currentRoomId', id);
+      localStorage.setItem('currentRoomName', name);
+      window.location.href = 'editor.html';
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = 'index.html';
+    }
+
+    loadRooms();
+  </script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CollabNotes — Editor</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+  <div class="editor-header">
+    <h2 id="roomTitle">Loading...</h2>
+    <div class="active-users" id="activeUsers"></div>
+    <button onclick="goBack()" style="width:auto;padding:0.4rem 1rem;margin:0;font-size:0.85rem;">← Back</button>
+  </div>
+
+  <div class="editor-body">
+    <textarea id="noteEditor" placeholder="Start typing your note..."></textarea>
+    <div class="editor-footer">
+      <button onclick="saveNote()" style="background:#16a34a;">💾 Save</button>
+      <span id="saveStatus">Last saved: never</span>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const roomId = localStorage.getItem('currentRoomId');
+    const roomName = localStorage.getItem('currentRoomName');
+
+    if (!token || !roomId) window.location.href = 'index.html';
+
+    document.getElementById('roomTitle').textContent = `✏️ ${roomName}`;
+
+    // Connect to Socket.io with JWT
+    const socket = io({ auth: { token } });
+
+    const editor = document.getElementById('noteEditor');
+
+    // Join the room
+    socket.emit('join-room', { roomId });
+
+    // Load existing note content
+    socket.on('load-note', (content) => {
+      editor.value = content || '';
+    });
+
+    // Update active users list
+    socket.on('active-users', (users) => {
+      document.getElementById('activeUsers').innerHTML =
+        users.map(u => `<span class="user-badge">👤 ${u}</span>`).join('');
+    });
+
+    // Receive changes from other users
+    socket.on('receive-changes', (content) => {
+      editor.value = content;
+    });
+
+    // Note saved confirmation
+    socket.on('note-saved', ({ savedBy, time }) => {
+      document.getElementById('saveStatus').textContent =
+        `✅ Saved by ${savedBy} at ${time}`;
+    });
+
+    // Broadcast typing to others
+    let typingTimer;
+    editor.addEventListener('input', () => {
+      socket.emit('typing', { roomId, content: editor.value });
+
+      // Auto-save after 3 seconds of inactivity
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => saveNote(), 3000);
+    });
+
+    function saveNote() {
+      socket.emit('save-note', { roomId, content: editor.value });
+    }
+
+    function goBack() {
+      socket.emit('leave-room', { roomId });
+      window.location.href = 'dashboard.html';
+    }
+  </script>
+</body>
+</html>
