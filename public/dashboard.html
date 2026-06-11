@@ -3,25 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CollabNotes — Dashboard</title>
+  <title>CollabNotes - Dashboard</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
     <div class="rooms-header">
-      <h2>📋 My Rooms</h2>
+      <h2>My Rooms</h2>
       <button id="logoutBtn" onclick="logout()">Logout</button>
     </div>
 
     <div id="message" class="message"></div>
 
-    <!-- CREATE ROOM -->
     <input type="text" id="roomName" placeholder="New room name..." />
-    <button onclick="createRoom()">＋ Create Room</button>
+    <button onclick="createRoom()">Create Room</button>
 
-    <!-- JOIN ROOM -->
     <input type="text" id="roomCode" placeholder="Enter room code to join..." />
-    <button class="secondary" onclick="joinRoom()">🔗 Join Room</button>
+    <button class="secondary" onclick="joinRoom()">Join Room</button>
 
     <hr style="border-color:#334155; margin: 1.5rem 0;" />
 
@@ -30,6 +28,8 @@
     </div>
   </div>
 
+  <script src="config.js"></script>
+  <script src="app.js"></script>
   <script>
     const token = localStorage.getItem('token');
     if (!token) window.location.href = 'index.html';
@@ -43,7 +43,7 @@
     }
 
     async function loadRooms() {
-      const res = await fetch('/api/notes/rooms', {
+      const res = await fetch(apiUrl('/api/notes/rooms'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const rooms = await res.json();
@@ -55,21 +55,27 @@
       }
 
       list.innerHTML = rooms.map(room => `
-        <div class="room-card" onclick="openRoom(${room.id}, '${room.name}')">
+        <div class="room-card" data-room-id="${room.id}" data-room-name="${escapeHtml(room.name)}">
           <div>
-            <div>${room.name}</div>
-            <div class="room-code">${room.code}</div>
+            <div>${escapeHtml(room.name)}</div>
+            <div class="room-code">${escapeHtml(room.code)}</div>
           </div>
-          <span>→</span>
+          <span>&rarr;</span>
         </div>
       `).join('');
+
+      document.querySelectorAll('.room-card').forEach((card) => {
+        card.addEventListener('click', () => {
+          openRoom(card.dataset.roomId, card.dataset.roomName);
+        });
+      });
     }
 
     async function createRoom() {
       const name = document.getElementById('roomName').value.trim();
       if (!name) return showMessage('Enter a room name.', 'error');
 
-      const res = await fetch('/api/notes/rooms', {
+      const res = await fetch(apiUrl('/api/notes/rooms'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,7 +98,7 @@
       const code = document.getElementById('roomCode').value.trim().toUpperCase();
       if (!code) return showMessage('Enter a room code.', 'error');
 
-      const res = await fetch('/api/notes/rooms/join', {
+      const res = await fetch(apiUrl('/api/notes/rooms/join'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -120,6 +126,15 @@
     function logout() {
       localStorage.clear();
       window.location.href = 'index.html';
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
     }
 
     loadRooms();
