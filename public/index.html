@@ -61,19 +61,23 @@
       const email = document.getElementById('loginEmail').value;
       const password = document.getElementById('loginPassword').value;
 
-      const res = await fetch(apiUrl('/api/auth/login'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
+      try {
+        const res = await fetch(apiUrl('/api/auth/login'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
 
-      const data = await res.json();
-      if (res.ok) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('username', data.username);
-        window.location.href = 'dashboard.html';
-      } else {
-        showMessage(data.message, 'error');
+        const data = await readJson(res);
+        if (res.ok) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('username', data.username);
+          window.location.href = 'dashboard.html';
+        } else {
+          showMessage(data.message || 'Login failed.', 'error');
+        }
+      } catch (err) {
+        showMessage('Could not reach the backend API. Check the Render URL and CORS settings.', 'error');
       }
     }
 
@@ -82,19 +86,31 @@
       const email = document.getElementById('signupEmail').value;
       const password = document.getElementById('signupPassword').value;
 
-      const res = await fetch(apiUrl('/api/auth/signup'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password })
-      });
+      try {
+        const res = await fetch(apiUrl('/api/auth/signup'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password })
+        });
 
-      const data = await res.json();
-      if (res.ok) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('username', data.username);
-        window.location.href = 'dashboard.html';
-      } else {
-        showMessage(data.message, 'error');
+        const data = await readJson(res);
+        if (res.ok) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('username', data.username);
+          window.location.href = 'dashboard.html';
+        } else {
+          showMessage(data.message || 'Signup failed.', 'error');
+        }
+      } catch (err) {
+        showMessage('Could not reach the backend API. Check the Render URL and CORS settings.', 'error');
+      }
+    }
+
+    async function readJson(res) {
+      try {
+        return await res.json();
+      } catch (err) {
+        return {};
       }
     }
   </script>
