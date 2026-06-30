@@ -2,7 +2,7 @@
 
 A full-stack real-time collaborative note-taking application where multiple users can create rooms, join with a code, and edit notes together live.
 
-🌐 **Live Demo:** [https://collab-notes-production-d080.up.railway.app](https://collab-notes-iota.vercel.app/)
+🌐 **Live Demo:** [https://collab-notes-iota.vercel.app/](https://collab-notes-iota.vercel.app/)
 
 ---
 
